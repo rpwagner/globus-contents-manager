@@ -46,13 +46,13 @@ except:
 if not tokens:
     # if no tokens, need to start Native App authentication process to get tokens
     tokens = client.login(requested_scopes=SCOPES,
-                          refresh_tokens=True)
+                          refresh_tokens=False)
 
     try:
         # save the tokens
         client.save_tokens(tokens)
 
         # create environment variable
-        os.environ['GLOBUS_DATA'] = tokens
+        os.environ['GLOBUS_DATA'] = base64.b64encode(pickle.dumps(tokens))
     except:
         pass
