@@ -35,6 +35,32 @@ def count_files():
                                         path='/share/godata')
     return len(resp.data['DATA'])
 
+def get_dir_names():
+    transfer_client = get_transfer_client()
+    resp = transfer_client.operation_ls('ddb59aef-6d04-11e5-ba46-22000b92c6ec',
+                                        path='/~/')
+    data = resp.data['DATA']
+
+    items = []
+    for item in data:
+        if item['type'] == 'dir':
+            items.append(item['name'])
+
+    return items
+
+def get_file_names():
+    transfer_client = get_transfer_client()
+    resp = transfer_client.operation_ls('ddb59aef-6d04-11e5-ba46-22000b92c6ec',
+                                        path='/~/shared_dir')
+    data = resp.data['DATA']
+
+    items = []
+    for item in data:
+        print(item)
+        if item['type'] == 'file':
+            items.append(item['name'])
+
+    return items
 
 if __name__ == '__main__':
     count = count_files()
@@ -46,3 +72,9 @@ if __name__ == '__main__':
 
     renamed = rename()
     print(renamed)
+
+    dirs = get_dir_names()
+    print(dirs)
+
+    files = get_file_names()
+    print(files)

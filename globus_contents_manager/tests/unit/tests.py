@@ -59,3 +59,21 @@ def test_count_files(mock_operation_ls):
 def test_count_files_again(mock_get_transfer_client):
     output = testfuncs.count_files()
     assert output == 2
+
+def test_dir_exists():
+    dirs = testfuncs.get_dir_names()
+    assert 'shared_dir' in dirs
+
+def test_file_exists():
+    files = testfuncs.get_file_names()
+    assert 'file1.txt' in files
+
+def get(mock_get_transfer_client):
+    pass
+
+def save(mock_get_transfer_client):
+    pass
+
+def delete_file(mock_get_transfer_client):
+    pass
+    
