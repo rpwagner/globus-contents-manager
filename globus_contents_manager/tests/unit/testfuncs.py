@@ -63,18 +63,13 @@ def get_file_names():
     return items
 
 if __name__ == '__main__':
-    count = count_files()
-    print(f'Count contains {count} files!')
+    print(f'Count contains {count_files()} files!')
     print('output successful, now try running with pytest!')
 
-    res = make_directory()
-    print(res)
+    print(make_directory())
 
-    renamed = rename()
-    print(renamed)
+    print(rename())
 
-    dirs = get_dir_names()
-    print(dirs)
+    print(get_dir_names())
 
-    files = get_file_names()
-    print(files)
+    print(get_file_names())
