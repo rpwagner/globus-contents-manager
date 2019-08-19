@@ -19,7 +19,7 @@ setup(
     version='0.1',
     description='A Globus Contents Manager',
     long_description=readme(),
-    url='https://github.com/gneezyn/globus-contents-manager',
+    url='http://github.com/gneezyn/globus-contents-manager',
     author='Netta Gneezy',
     author_email='netta.en@gmail.com',
     license='Apache 2.0',
