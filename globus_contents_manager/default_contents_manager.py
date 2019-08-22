@@ -6,15 +6,17 @@ import os
 import tika
 from tika import parser
 
+if os.name == 'nt':
+    import win32api, win32con
 
+PATH = '/~/'
 class DefaultContentsManager(ContentsManager):
     """
     Default ContentsManager
     """
-
-    def __init__(self, path=None):
-        if path is None:
-            self.path = os.getcwd()       
+    def __init__(self, *args, **kwargs):
+        super(DefaultContentsManager, self).__init__(*args, **kwargs)
+        self.path = PATH
         self.files = {}
         self.directories = {}
 
@@ -27,10 +29,14 @@ class DefaultContentsManager(ContentsManager):
                 items = os.listdir(local_path)
                 self.directories[local_path] = items
 
-
     def is_hidden(self, path):
-        return False
-
+        # check if file or directory is hidden
+        if os.name == 'nt':
+            # check if windows os
+            attribute = win32api.GetFileAttributes(path)
+            return attribute & (win32con.FILE_ATTRIBUTE_HIDDEN | win32con.FILE_ATTRIBUTE_SYSTEM)
+        # check if unix os
+        return path.startswith('.')
 
     def dir_exists(self, path):
         # Checks if a directory exists at the given path
@@ -38,14 +44,13 @@ class DefaultContentsManager(ContentsManager):
             return True
         return False
 
-
     def file_exists(self, path):
         # Checks if a file exists at the given path
         file_paths = self.files.keys()
         if path in file_paths:
             return True
         return False
-        
+
     def get(self, path, content=True, modelType=None):
         # Get a file or directory
         if modelType == 'directory':
