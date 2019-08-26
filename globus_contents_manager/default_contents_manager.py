@@ -30,12 +30,15 @@ class DefaultContentsManager(ContentsManager):
                 self.directories[local_path] = items
 
     def is_hidden(self, path):
-        # check if file or directory is hidden
+        # Check if file or directory is hidden
+
+        # for windows
         if os.name == 'nt':
             # check if windows os
             attribute = win32api.GetFileAttributes(path)
             return attribute & (win32con.FILE_ATTRIBUTE_HIDDEN | win32con.FILE_ATTRIBUTE_SYSTEM)
-        # check if unix os
+        
+        # for unix os
         return path.startswith('.')
 
     def dir_exists(self, path):

@@ -61,10 +61,6 @@ class GlobusContentsManager(DefaultContentsManager):
         # if an exception was not returned then file does not exist
         return False
 
-    #https://app.globus.org/file-manager?origin_id=
-    def get(self, path, content=True, modelType=None):
-        # Get a file or directory
-        return
 
     def rename_file(self, old_path, new_path):
         # Rename a file or directory
@@ -123,3 +119,37 @@ class GlobusContentsManager(DefaultContentsManager):
             print("Task ID:", submit_result["task_id"])
         except:
             pass
+
+        return
+
+
+    def is_hidden(self, path):
+        # Check if file or directory is hidden
+
+        try:
+            # Check local file/directory
+            local = super().is_hidden(path)
+
+            if isinstance(local, bool):
+                return local
+        except:
+            pass
+
+        # get all hidden files and directories
+        resp = self.get_ls(path, "name:.*")
+
+        if isinstance(resp, globus_sdk.exc.TransferAPIError) or resp is None:
+            return False
+        
+        return True
+
+
+    def save(self, model, path):
+        # Save a file or directory model to a path
+        return
+
+
+    #https://app.globus.org/file-manager?origin_id=
+    def get(self, path, content=True, modelType=None):
+        # Get a file or directory
+        return
