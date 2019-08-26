@@ -68,7 +68,13 @@ class GlobusContentsManager(DefaultContentsManager):
 
     def rename_file(self, old_path, new_path):
         # Rename a file or directory
-        
+
+        # rename local file/directory
+        try:
+            super().rename_file(self, old_path, new_path)
+        except FileNotFoundError:
+            print("File/directory not found on local storage")
+
         try:
             # if possible, rename local file/directory
             super().rename_file(old_path, new_path)
@@ -86,4 +92,34 @@ class GlobusContentsManager(DefaultContentsManager):
             # rename the file/directory on the endpoint
             transfer_client.operation_rename(endpoint_id, old_path, new_path)
         except globus_sdk.TransferAPIError:
-            print("Error occurred when trying to rename file/directory")   
+            print("Error occurred when trying to rename file/directory")
+
+    def delete_file(self, path):
+        # Delete the file or directory at the given path
+
+        try:
+            # if possible, delete local file/directory
+            super().delete_file(path)
+        except:
+            pass
+        
+        
+        try:
+            # get the id of the endpoint that the file/directory exists on
+            endpoint_id = input("Enter the Endpoint ID")
+
+            # get the transfer client
+            auth = self.nc.get_authorizers()['transfer.api.globus.org']
+            transfer_client = globus_sdk.TransferClient(authorizer=auth)
+            
+            ddata = globus_sdk.DeleteData(transfer_client, endpoint_id, recursive=True)
+            # Recursively delete path contents (because of recursive flag set above)
+            ddata.add_item(path)
+
+            # Make sure that endpoint is activated
+            transfer_client.endpoint_autoactivate(endpoint_id)
+
+            submit_result = transfer_client.submit_delete(ddata)
+            print("Task ID:", submit_result["task_id"])
+        except:
+            pass
