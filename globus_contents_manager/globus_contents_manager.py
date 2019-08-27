@@ -146,10 +146,25 @@ class GlobusContentsManager(DefaultContentsManager):
 
     def save(self, model, path):
         # Save a file or directory model to a path
+
+        try:
+            # try to save file/directory model locally
+            super().save(model, path)
+        except:
+            pass
+
+        
+
         return
 
 
     #https://app.globus.org/file-manager?origin_id=
     def get(self, path, content=True, modelType=None):
         # Get a file or directory
+
+        try:
+            super().get(path, content, modelType)
+        except:
+            pass
+            
         return
