@@ -2,9 +2,7 @@
 Globus Contents Manager
 """
 import os
-import tika
 import globus_sdk
-from tika import parser
 from . import DefaultContentsManager
 from fair_research_login import NativeClient
 
@@ -22,7 +20,7 @@ class GlobusContentsManager(DefaultContentsManager):
         self.nc = NativeClient(client_id=CLIENT_ID)
         self.nc.login(requested_scopes=SCOPES)
 
-    def get_ls(self, path=PATH, filter=None):
+    def get_ls(self, path=PATH, tc_filter=None):
         """
         Gets the list of directories and files at a given path. Useful for checking if file or directory exists.
         """
@@ -31,7 +29,7 @@ class GlobusContentsManager(DefaultContentsManager):
 
         resp = None
         try:
-            resp = transfer_client.operation_ls(CLIENT_ID, path=path, filter=filter)
+            resp = transfer_client.operation_ls(CLIENT_ID, path=path, filter=tc_filter)
         except globus_sdk.GlobusAPIError as e:
             print('The specified path is not a directory')
             return e
@@ -136,7 +134,7 @@ class GlobusContentsManager(DefaultContentsManager):
             pass
 
         # get all hidden files and directories
-        resp = self.get_ls(path, "name:.*")
+        resp = self.get_ls(path, tc_filter="name:.*")
 
         if isinstance(resp, globus_sdk.exc.TransferAPIError) or resp is None:
             return False
@@ -168,3 +166,4 @@ class GlobusContentsManager(DefaultContentsManager):
             pass
             
         return
+        

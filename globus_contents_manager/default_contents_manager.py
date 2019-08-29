@@ -1,16 +1,22 @@
 """
 WIP
 """
-from notebook.services.contents.manager import ContentsManager
 import os
-import tika
 from tika import parser
+from globus_contents_manager.ipycompat import (
+    ContentsManager, 
+    HasTraits, 
+    Unicode,
+    reads,
+    from_dict,
+    GenericFileCheckpoints
+)
 
 # if os.name == 'nt':
 #     import win32api, win32con
 
 PATH = '/~/'
-class DefaultContentsManager(ContentsManager):
+class DefaultContentsManager(ContentsManager, HasTraits):
     """
     Default ContentsManager
     """
@@ -37,7 +43,7 @@ class DefaultContentsManager(ContentsManager):
         #     # check if windows os
         #     attribute = win32api.GetFileAttributes(path)
         #     return attribute & (win32con.FILE_ATTRIBUTE_HIDDEN | win32con.FILE_ATTRIBUTE_SYSTEM)
-        
+
         # for unix os
         return path.startswith('.')
 
@@ -91,7 +97,7 @@ class DefaultContentsManager(ContentsManager):
             self.directories[new_path] = item
 
     ### Utils
-    
+
     # from https://github.com/quantopian/pgcontents/blob/master/pgcontents/pgmanager.py
     def guess_type(self, path, allow_directory=True):
         """
