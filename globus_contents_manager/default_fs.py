@@ -17,21 +17,39 @@ class DefaultFS(HasTraits):
         raise NotImplementedError("Should be implemented by the file system abstraction")
 
     def isfile(self, path, endpoint_id=None):
+        """
+        Checks if a given path points to a file.
+        """
         raise NotImplementedError("Should be implemented by the file system abstraction")
 
     def isdir(self, path, endpoint_id=None):
+        """
+        Checks if a given path points to a directory.
+        """
         raise NotImplementedError("Should be implemented by the file system abstraction")
 
-    def mv(self, old_path, new_path, endpoint_id=None):
+    def mv(self, old_path, new_path, endpoint_id=None, stop_after=0):
+        """
+        Moves a file from it's current location (old_path) to a new location (new_path).
+        """
         raise NotImplementedError("Should be implemented by the file system abstraction")
 
-    def cp(self, old_path, new_path, endpoint_id=None):
+    def cp(self, old_path, new_path, endpoint_id=None, stop_after=0):
+        """
+        Copies a file or directory located at a given path to a new location.
+        """
         raise NotImplementedError("Should be implemented by the file system abstraction")
 
     def rm(self, path, endpoint_id=None):
+        """
+        Deletes a file or directory (recursively) located at a given path.
+        """
         raise NotImplementedError("Should be implemented by the file system abstraction")
 
     def mkdir(self, path, endpoint_id=None):
+        """
+        Creates a new directory using the given path.
+        """
         raise NotImplementedError("Should be implemented by the file system abstraction")
 
     def read(self, path, endpoint_id=None):
