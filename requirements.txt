@@ -2,3 +2,4 @@ notebook
 fair_research_login
 globus-sdk>=1.1.0
 tika
+globusonline-transfer-api-client
