@@ -40,7 +40,7 @@ class DefaultFS(HasTraits):
         """
         raise NotImplementedError("Should be implemented by the file system abstraction")
 
-    def rm(self, path, endpoint_id=None):
+    def rm(self, path, endpoint_id=None, stop_after=0):
         """
         Deletes a file or directory (recursively) located at a given path.
         """

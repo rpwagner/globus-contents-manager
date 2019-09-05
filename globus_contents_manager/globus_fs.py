@@ -228,13 +228,51 @@ class GlobusFS(DefaultFS):
             
         return False
 
-    def rm(self, path, endpoint_id=DEFAULT_ENDPOINT):
+    def rm(self, path, endpoint_id=DEFAULT_ENDPOINT, stop_after=60*60*24):
+        """
+        Deletes a file or directory (recursively) located at a given path.
+        """
+        try:
+            # delete the file/directory and get the task id
+            rm_label = "Deleting file/directory."
+            task_id = self.globus_delete(path, endpoint_id=endpoint_id,
+                                        label=rm_label)
 
-        return
+            # wait for the task to complete, polling every 15 seconds.
+            completed = self.transfer_client.task_wait(task_id, timeout=stop_after,
+                                                    polling_interval=15)
+            if completed:
+                print("Delete task finished!")
+                return True
+            
+            print("Delete task still running after timeout reached.")
+
+        except exc.TransferAPIError:
+            print("TransferAPIError occurred when attempting to delete file/directory.")
+        
+        return False
 
     def mkdir(self, path, endpoint_id=DEFAULT_ENDPOINT):
+        """
+        Creates a new directory using the given path. Returns a boolean to indicate
+        whether or not the operation was successful.
+        """
 
-        return
+        # check if the TransferClient exists
+        if self.transfer_client is None:
+            # if it doesn't then get one
+            self.get_transfer_client()
+
+        try:
+            self.transfer_client.operation_mkdir(endpoint_id, path=path)
+            return True
+        except GlobusAPIError as ex:
+            if "Exists" in ex.code:
+                print("The specified directory already exists on that endpoint.")
+            else:
+                raise
+
+        return False
 
     def read(self, path, endpoint_id=DEFAULT_ENDPOINT):
 
