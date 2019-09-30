@@ -2,14 +2,15 @@
 WIP
 """
 import os
+from datetime import datetime
 from tika import parser
-from globus_contents_manager.ipycompat import (
+from globuscontents.ipycompat import (
     ContentsManager, 
     HasTraits, 
-    Unicode,
-    reads,
-    from_dict,
-    GenericFileCheckpoints
+    # Unicode,
+    # reads,
+    # from_dict,
+    # GenericFileCheckpoints
 )
 
 # if os.name == 'nt':

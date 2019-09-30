@@ -15,7 +15,7 @@ def requirements():
         return f.read()
 
 setup(
-    name='globus_contents_manager',
+    name='globuscontents',
     version='0.1',
     description='A Globus Contents Manager',
     long_description=readme(),

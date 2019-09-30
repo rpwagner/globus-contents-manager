@@ -1,9 +1,13 @@
+"""
+Various unit tests of Globus SDK with mock objects.
+"""
+
 from unittest.mock import Mock
 import pytest
 import globus_sdk
 # from .mocks import GlobusTransferTaskResponse
 
-from . import testfuncs
+from globuscontents.tests.unit import testfuncs
 
 class MockGlobusResponse:
     """Mimics the GlobusSDK Response object"""

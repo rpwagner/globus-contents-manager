@@ -2,16 +2,27 @@
 Utilities for handling file operations through the Globus SDK.
 """
 
+import os
+import base64
+from pathlib import Path
+from tornado.web import HTTPError
 from globus_sdk import (
+    AccessTokenAuthorizer,
+    NativeAppAuthClient,
     TransferClient, 
     TransferData,
     DeleteData,
     GlobusAPIError, 
     exc
 )
-from fair_research_login import NativeClient
-from globus_contents_manager.default_fs import DefaultFS
-from ipycompat import Unicode
+# from fair_research_login import NativeClient
+from globuscontents.default_fs import DefaultFS
+from globuscontents.utils import (
+    DUMMY_CREATED_DATE,
+    spawn_tokens,
+    get_tokens
+)
+from globuscontents.ipycompat import Unicode
 
 
 class GlobusFS(DefaultFS):
@@ -19,44 +30,101 @@ class GlobusFS(DefaultFS):
     File System implementation using Globus SDK functionality.
     """
     CLIENT_ID = Unicode(
-        help="Globus project Client ID").tag(
+        help="Globus project Client ID", allow_none=True,
+        default_value="7414f0b4-7d05-4bb6-bb00-076fa3f17cf5").tag(
             config=True, env="GLOBUS_CLIENT_ID")
 
     SCOPES = Unicode(
         help="The scopes you want to request (optional)", allow_none=True, 
-        default_value=["openid", "email", "urn:globus:auth:scope:transfer.api.globus.org:all"]).tag(
+        default_value="openid email urn:globus:auth:scope:transfer.api.globus.org:all").tag(
             config=True, env="GLOBUS_SCOPES")
 
-    REFRESH_TOKENS = Unicode(
-        help="Affects whether or not refresh tokens are used (default is False)", allow_none=True,
-        default_value=False).tag(
-            config=True, env="GLOBUS_REFRESH_TOKENS")
-
-    DEFAULT_ENDPOINT = Unicode(
+    DEFAULT_ENDPOINT = str(Unicode(
         help="The default Endpoint ID that the system will use (optional)", allow_none=True,
         default_value='ddb59aef-6d04-11e5-ba46-22000b92c6ec').tag(
-            config=True, env="GLOBUS_DEFAULT_ENDPOINT")
+            config=True, env="GLOBUS_DEFAULT_ENDPOINT"))
 
-    tokens = None
-    client = None
+    scopes = None
     transfer_client = None
     
-    def __init__(self, log, **kwargs):
-        super(GlobusFS, self).__init__(**kwargs)
-        self.log = log
+    def __init__(self, *args, **kwargs):
+        super(GlobusFS, self).__init__(*args, **kwargs)
+        # self.log = log
 
         try:
-            self.client = NativeClient(client_id=self.CLIENT_ID)
+            # start login/auth process
+            spawn_tokens()
+            tokens = json.loads(get_tokens())
 
-            # check for existing tokens
-            try:
-                self.tokens = self.client.load_tokens(requested_scopes=self.SCOPES)
-            except:
-                # if it fails, then get new tokens
-                self.tokens = self.client.login(
-                    requested_scopes=self.SCOPES,
-                    refresh_tokens=self.REFRESH_TOKENS
-                )
+            # extract the transfer access token
+            print(type(tokens))
+            transfer_access_token = tokens['transfer.api.globus.org']['access_token']
+            # then use that token to create an AccessTokenAuthorizer
+            transfer_auth = AccessTokenAuthorizer(transfer_access_token)
+            # finally, use the authorizer to create a TransferClient object
+            self.transfer_client = TransferClient(authorizer=transfer_auth)
+
+            # first check for existing tokens using the GLOBUS_DATA environment variable
+            # tokens = os.getenv('GLOBUS_DATA')
+
+            # if tokens is None:
+            #     self.auth_client = NativeAppAuthClient(self.CLIENT_ID)
+
+            #     # convert the scopes from Unicode (to string) to list
+            #     self.scopes = str(self.SCOPES).split()
+            #     # explicitly start the flow (specify scopes and refresh tokens)
+            #     self.auth_client.oauth2_start_flow(requested_scopes=self.scopes, refresh_tokens=True)
+            #     # print URL
+            #     print("Login Here:\n\n{0}".format(self.auth_client.oauth2_get_authorize_url()))
+
+            #     # prompt user for code
+            #     auth_code = input("Please enter the code that you got from the link above: \n")
+
+            #     # exchange code for response object that contains the tokens
+            #     tokens = self.auth_client.oauth2_exchange_code_for_tokens(auth_code)
+            #     print("GOT TOKENS")
+            #     print(token_response)
+
+            #     # save the tokens in the GLOBUS_DATA environment variable
+            #     tokens = json.dumps(token_response, indent=4, sort_keys=True)
+            #     print("TOKENS")
+            #     print(tokens)
+            #     os.environ['GLOBUS_DATA'] = tokens
+
+            # else:
+            #     print("TOKENS")
+            #     print(tokens)
+
+            
+
+
+            # self.client = NativeClient(client_id=self.CLIENT_ID)
+
+            # # convert the scopes from Unicode (to string) to list
+            # self.scopes = str(self.SCOPES).split()
+
+            # # check for existing tokens
+            # try:
+            #     # TODO: tokens not loading
+            #     tokens = self.client.load_tokens(requested_scopes=scopes)
+            #     print("TOKENS LOADED")
+            # except:
+            #     pass
+
+            # # if no tokens, need to start NativeApp authentication process
+            # if not tokens:
+            #     tokens = self.client.login(requested_scopes=scopes, refresh_tokens=True)
+            #     print("LOGIN SUCCESSFUL")
+
+            #     try:
+            #         # save the tokens
+            #         self.client.save_tokens(tokens)
+            #         print("SAVED TOKENS")
+
+            #         # # create environment variable
+            #         # os.environ['GLOBUS_DATA'] = json.dumps(tokens, indent=4, sort_keys=True)
+            #     except:
+            #         pass
 
         except:
             print("Error occurred when trying to log in to Globus")
@@ -65,8 +133,16 @@ class GlobusFS(DefaultFS):
         """
         Gets the Transfer Client using the NativeClient instance.
         """
-        auth = self.client.get_authorizers()['transfer.api.globus.org']
-        self.transfer_client = TransferClient(authorizer=auth)
+        # if self.transfer_client is not None:
+        #     return self.transfer_client
+        
+        # globus_env_data = os.getenv('GLOBUS_DATA')
+        # tokens = json.loads(globus_env_data)
+
+        # transfer_authorizer = self.client.get_authorizers()['transfer.api.globus.org']
+        # self.transfer_client = TransferClient(authorizer=transfer_authorizer)
+
+        return self.transfer_client
 
     def globus_transfer(self, source_ep=DEFAULT_ENDPOINT, dest_ep=DEFAULT_ENDPOINT,
                         source_path="/~/", dest_path="/~/", 
@@ -93,7 +169,8 @@ class GlobusFS(DefaultFS):
 
         # make sure that the endpoint(s) are activated
         self.transfer_client.endpoint_autoactivate(source_ep)
-        self.transfer_client.endpoint_autoactivate(dest_ep)
+        if source_ep != dest_ep:
+            self.transfer_client.endpoint_autoactivate(dest_ep)
 
         # submit the transfer task and return the task id
         submit_result = self.transfer_client.submit_transfer(tdata)
@@ -125,7 +202,7 @@ class GlobusFS(DefaultFS):
 
     # DefaultFS method implementations ------------------------------------------------------------
 
-    def ls(self, path="", endpoint_id=DEFAULT_ENDPOINT):
+    def ls(self, path="/~/", endpoint_id=DEFAULT_ENDPOINT):
         if self.transfer_client is None:
             self.get_transfer_client()
 
@@ -134,6 +211,7 @@ class GlobusFS(DefaultFS):
             return resp
         except GlobusAPIError as globus_err:
             print('The specified path is not a directory')
+            print(globus_err)
             return globus_err
 
     def isfile(self, path, endpoint_id=DEFAULT_ENDPOINT):
@@ -236,11 +314,11 @@ class GlobusFS(DefaultFS):
             # delete the file/directory and get the task id
             rm_label = "Deleting file/directory."
             task_id = self.globus_delete(path, endpoint_id=endpoint_id,
-                                        label=rm_label)
+                                         label=rm_label)
 
             # wait for the task to complete, polling every 15 seconds.
             completed = self.transfer_client.task_wait(task_id, timeout=stop_after,
-                                                    polling_interval=15)
+                                                       polling_interval=15)
             if completed:
                 print("Delete task finished!")
                 return True
@@ -254,8 +332,8 @@ class GlobusFS(DefaultFS):
 
     def mkdir(self, path, endpoint_id=DEFAULT_ENDPOINT):
         """
-        Creates a new directory using the given path. Returns a boolean to indicate
-        whether or not the operation was successful.
+        Creates a new directory on a Globus endpoint using the given path.
+        Returns a boolean to indicate whether or not the operation was successful.
         """
 
         # check if the TransferClient exists
@@ -275,13 +353,40 @@ class GlobusFS(DefaultFS):
         return False
 
     def read(self, path, endpoint_id=DEFAULT_ENDPOINT):
+        if not self.isfile(path, endpoint_id=endpoint_id):
+            pass
 
-        return
+        with open(path, mode='rb') as f:
+            content = f.read().decode("utf-8")
+
+        return content
 
     def lstat(self, path, endpoint_id=DEFAULT_ENDPOINT):
-        
-        return
+        parent = Path(path).parent
+        files = self.ls(path=parent, endpoint_id=endpoint_id)["DATA"]
+        for item in files:
+            if item["type"] == "file":
+                name = os.path.basename(os.path.normpath(path))
+                if item["name"] == name:
+                    return item["last_modified"]
+        return DUMMY_CREATED_DATE
 
     def write(self, path, content, format, endpoint_id=DEFAULT_ENDPOINT):
+        if format not in {'text', 'base64'}:
+            raise HTTPError(400, "Must specify format of file contents as 'text' or 'base64'")
 
-        return
+        try:
+            if format == 'text':
+                w_content = content.encode('utf8')
+            else:
+                b64_bytes = content.encode('ascii')
+                w_content = base64.b64decode(b64_bytes)
+        except Exception as exc:
+            raise HTTPError(400, u'Encoding error saving %s: %s' % (path, exc))
+        
+        with open(path, mode='wb') as f:
+            f.write(w_content)
+         
+    def writenotebook(self, path, content):
+        with open(path, mode='wb') as f:
+            f.write(content.encode("utf-8"))
