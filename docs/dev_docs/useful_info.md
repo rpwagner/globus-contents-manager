@@ -19,4 +19,4 @@ Only the issues that might come up again are listed here. If you encounter addit
 
 #### tornado & nbconvert
     * Problem - when trying to run **'jupyter notebook'** (in the terminal) it is possible to get various errors that accummulate into the image below (the token mentioned in the image is NOT a Globus token):
-    ![alt text](nbconvert_tornado_issue.png?raw=true)
+    ![alt text](nbconvert_tornado_issue.png)
