@@ -1,1 +1,2 @@
-# WIP
+# Developer Documents
+The various documents in this directory are intended to help any developer working on this project in the future. The intent is to make it easier for new or potential developers to get a sense of where the project currently is and a basic understanding of how it works.
