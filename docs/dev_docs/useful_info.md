@@ -18,5 +18,5 @@ Below are some links that I found useful while implementing the GlobusContentsMa
 Only the issues that might come up again are listed here. If you encounter additional issues or new solutions to existing issues, please create a new [Issue](https://github.com/gneezyn/globus-contents-manager/issues).
 
 #### tornado & nbconvert
-    * Problem - when trying to run `jupyter notebook` (in the terminal) it is possible to get various errors that accummulate into the image below (the token mentioned in the image is NOT a Globus token)
-    ![](/images/nbconvert_tornado_issue.png)
+    * Problem - when trying to run **'jupyter notebook'** (in the terminal) it is possible to get various errors that accummulate into the image below (the token mentioned in the image is NOT a Globus token):
+    ![](nbconvert_tornado_issue.png?raw=true)
