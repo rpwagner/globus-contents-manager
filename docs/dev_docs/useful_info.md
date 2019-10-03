@@ -1,3 +1,6 @@
+# Useful Info
+This document contains various useful information that doesn't fall in a particular category.
+
 ## Useful Links & GitHubRepos
 Below are some links that I found useful while implementing the GlobusContentsManager and brief descriptions (including how I used them).
 
@@ -19,7 +22,7 @@ Only the issues that might come up again are listed here. If you encounter addit
 
 #### tornado & nbconvert
 * Problem - when trying to run `jupyter notebook` (in the terminal) it is possible to get various errors that accummulate into the image below (the token mentioned in the image is NOT a Globus token):
-![alt text](./nbconvert_tornado_issue.png)
+![alt text](images/nbconvert_tornado_issue.png)
 * Solution - there are two parts to the solution, although it is possible that only one part is needed to fix the issue
     * `nbconvert` - make sure that `nbconvert` is updated
         * Using pip: `pip install --upgrade --user nbconvert`
