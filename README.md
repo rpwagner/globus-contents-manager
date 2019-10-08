@@ -19,5 +19,5 @@ A Globus backed ContentsManager implementation for Jupyter Notebook.
 * This step is needed so that Jupyter knows to use the GlobusContentsManager instead of the default ContentsManager.
 * If you do not have an existing `~/.jupyter/jupyter_notebook_config.py` file then you can either generate one or copy and paste the one provided in this project's root directory to the `~/.jupyter/` directory.
     * To generate a `jupyter_notebook_config.py` file, with all of the defaults commented out, run the following command: `$ jupyter notebook --generate-config`
-    * You can see the [Jupyter Config Documentation](https://jupyter-notebook.readthedocs.io/en/stable/config.html) for more details on the different options (not including the ones specific to the GlobusContentsManager) available.
+    * You can refer to the [Jupyter Config Documentation](https://jupyter-notebook.readthedocs.io/en/stable/config.html) for more details on the different options (not including the ones specific to the GlobusContentsManager) available.
 
