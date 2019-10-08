@@ -7,9 +7,14 @@ A Globus backed ContentsManager implementation for Jupyter Notebook.
 
 ## Installation
 **Note**: At this time, the project must be installed locally.
-1. Clone the repo
+
+#### Clone the repo
 `$ git clone https://github.com/gneezyn/globus-contents-manager.git`
-2. Install the GlobusContentsManager
+
+#### Install the GlobusContentsManager
 `$ pip install globus-contents-manager`
-3. Edit `~/.jupyter/jupyter_notebook_config.py` to have the neccessary values
-    * The `jupyter_notebook_config.py` file located in the root directory of this project provides an example of what the basic setup for this project would look like.
+
+#### Edit `~/.jupyter/jupyter_notebook_config.py`
+* The `jupyter_notebook_config.py` file located in the root directory of this project provides an example of what the basic setup for this project would look like.
+* This step is needed so that Jupyter knows to use the GlobusContentsManager instead of the default ContentsManager.
+
