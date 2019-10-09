@@ -6,15 +6,8 @@ from datetime import datetime
 from tika import parser
 from globuscontents.ipycompat import (
     ContentsManager, 
-    HasTraits, 
-    # Unicode,
-    # reads,
-    # from_dict,
-    # GenericFileCheckpoints
+    HasTraits
 )
-
-# if os.name == 'nt':
-#     import win32api, win32con
 
 PATH = '/~/'
 class DefaultContentsManager(ContentsManager, HasTraits):
@@ -39,13 +32,6 @@ class DefaultContentsManager(ContentsManager, HasTraits):
     def is_hidden(self, path):
         # Check if file or directory is hidden
 
-        # for windows
-        # if os.name == 'nt':
-        #     # check if windows os
-        #     attribute = win32api.GetFileAttributes(path)
-        #     return attribute & (win32con.FILE_ATTRIBUTE_HIDDEN | win32con.FILE_ATTRIBUTE_SYSTEM)
-
-        # for unix os
         return path.startswith('.')
 
     def dir_exists(self, path):

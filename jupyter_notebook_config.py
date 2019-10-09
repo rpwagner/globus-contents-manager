@@ -1,7 +1,6 @@
 """
 Configuration file for jupyter-notebook.
 """
-import os
 
 from globuscontents.globus_contents_manager import GlobusContentsManager
 

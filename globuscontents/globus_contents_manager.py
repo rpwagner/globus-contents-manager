@@ -19,8 +19,6 @@ from globuscontents.utils import (
     NBFORMAT_VERSION
 )
 
-# CLIENT_ID = '7414f0b4-7d05-4bb6-bb00-076fa3f17cf5'
-# SCOPES = ['urn:globus:auth:scope:transfer.api.globus.org:all']
 PATH = "/~/"
 DEFAULT_ENDPOINT = "ddb59aef-6d04-11e5-ba46-22000b92c6ec"
 
@@ -30,10 +28,6 @@ class GlobusContentsManager(DefaultContentsManager):
     """
     def __init__(self, *args, **kwargs):
         super(GlobusContentsManager, self).__init__(*args, **kwargs)
-        # super().__init__(*args, **kwargs)
-
-        # self.nc = NativeClient(client_id=CLIENT_ID)
-        # self.nc.login(requested_scopes=SCOPES)
 
         self.fs = GlobusFS()
 
@@ -43,8 +37,6 @@ class GlobusContentsManager(DefaultContentsManager):
         a file or directory exists.
         """
         transfer_client = self.fs.get_transfer_client()
-        # auth = self.nc.get_authorizers()['transfer.api.globus.org']
-        # transfer_client = globus_sdk.TransferClient(authorizer=auth)
 
         resp = None
         try:

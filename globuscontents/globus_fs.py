@@ -64,68 +64,6 @@ class GlobusFS(DefaultFS):
             # finally, use the authorizer to create a TransferClient object
             self.transfer_client = TransferClient(authorizer=transfer_auth)
 
-            # first check for existing tokens using the GLOBUS_DATA environment variable
-            # tokens = os.getenv('GLOBUS_DATA')
-
-            # if tokens is None:
-            #     self.auth_client = NativeAppAuthClient(self.CLIENT_ID)
-
-            #     # convert the scopes from Unicode (to string) to list
-            #     self.scopes = str(self.SCOPES).split()
-            #     # explicitly start the flow (specify scopes and refresh tokens)
-            #     self.auth_client.oauth2_start_flow(requested_scopes=self.scopes, refresh_tokens=True)
-            #     # print URL
-            #     print("Login Here:\n\n{0}".format(self.auth_client.oauth2_get_authorize_url()))
-
-            #     # prompt user for code
-            #     auth_code = input("Please enter the code that you got from the link above: \n")
-
-            #     # exchange code for response object that contains the tokens
-            #     tokens = self.auth_client.oauth2_exchange_code_for_tokens(auth_code)
-            #     print("GOT TOKENS")
-            #     print(token_response)
-
-            #     # save the tokens in the GLOBUS_DATA environment variable
-            #     tokens = json.dumps(token_response, indent=4, sort_keys=True)
-            #     print("TOKENS")
-            #     print(tokens)
-            #     os.environ['GLOBUS_DATA'] = tokens
-
-            # else:
-            #     print("TOKENS")
-            #     print(tokens)
-
-            
-
-
-            # self.client = NativeClient(client_id=self.CLIENT_ID)
-
-            # # convert the scopes from Unicode (to string) to list
-            # self.scopes = str(self.SCOPES).split()
-
-            # # check for existing tokens
-            # try:
-            #     # TODO: tokens not loading
-            #     tokens = self.client.load_tokens(requested_scopes=scopes)
-            #     print("TOKENS LOADED")
-            # except:
-            #     pass
-
-            # # if no tokens, need to start NativeApp authentication process
-            # if not tokens:
-            #     tokens = self.client.login(requested_scopes=scopes, refresh_tokens=True)
-            #     print("LOGIN SUCCESSFUL")
-
-            #     try:
-            #         # save the tokens
-            #         self.client.save_tokens(tokens)
-            #         print("SAVED TOKENS")
-
-            #         # # create environment variable
-            #         # os.environ['GLOBUS_DATA'] = json.dumps(tokens, indent=4, sort_keys=True)
-            #     except:
-            #         pass
-
         except:
             print("Error occurred when trying to log in to Globus")
 
@@ -133,15 +71,6 @@ class GlobusFS(DefaultFS):
         """
         Gets the Transfer Client using the NativeClient instance.
         """
-        # if self.transfer_client is not None:
-        #     return self.transfer_client
-        
-        # globus_env_data = os.getenv('GLOBUS_DATA')
-        # tokens = json.loads(globus_env_data)
-
-        # transfer_authorizer = self.client.get_authorizers()['transfer.api.globus.org']
-        # self.transfer_client = TransferClient(authorizer=transfer_authorizer)
-
         return self.transfer_client
 
     def globus_transfer(self, source_ep=DEFAULT_ENDPOINT, dest_ep=DEFAULT_ENDPOINT,
