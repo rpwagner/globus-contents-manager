@@ -25,8 +25,8 @@ This approach is best used if you want to use the simplest (default) configurati
 ##### Option 2: Edit `~/.jupyter/jupyter_notebook_config.py`
 This approach is best used if you want Jupyter to always use the GlobusContentsManager when you open a new or existing Jupyter Notebook. 
 
-* Edit or generate the `jupyter_notebook_config.py` file in the `~/.jupyter/` directory and make sure that it correctly specifies the GlobusContentsManager.
+1. Edit or generate the `jupyter_notebook_config.py` file in the `~/.jupyter/` directory and make sure that it correctly specifies the GlobusContentsManager.
     * The `jupyter_notebook_config.py` file located in the root directory of this project provides an example of what the basic setup for this project would look like.
     * To generate a `jupyter_notebook_config.py` file, with all of the defaults commented out, run the following command: `$ jupyter notebook --generate-config`
     * You can refer to the [Jupyter Config Documentation](https://jupyter-notebook.readthedocs.io/en/stable/config.html) for more details on the different options (not including the ones specific to the GlobusContentsManager) available.
-* Start the Jupyter Notebook: `jupyter notebook`
+2. Start the Jupyter Notebook: `jupyter notebook`
