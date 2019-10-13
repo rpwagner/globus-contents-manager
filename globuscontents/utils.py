@@ -15,24 +15,12 @@ def base_model(path):
         "name": path.rsplit('/', 1)[-1],
         "path": path,
         "writable": True,
-        "last_modified": None,
+        "last_modified": DUMMY_CREATED_DATE,
         "created": None, 
         "content": None,
         "format": None,
         "mimetype": None,
     }
-
-def base_directory_model(path):
-    """
-    Represents a basic directory model.
-    """
-    model = base_model(path)
-    model.update(
-        type="directory",
-        last_modified=DUMMY_CREATED_DATE,
-        created=DUMMY_CREATED_DATE,)
-    
-    return model
 
 def convert_to_datetime(globus_time):
     """
@@ -76,6 +64,7 @@ def spawn_tokens(client_id=CLIENT_ID, req_scopes=SCOPES, name=APP_NAME):
     tokens = os.getenv('GLOBUS_DATA')
     # try to load tokens from local file (native app config)
     client = NativeClient(client_id=client_id, app_name=name)
+    
     # try:
     #     tokens = client.load_tokens(requested_scopes=req_scopes)
     # except:
@@ -100,8 +89,5 @@ def get_tokens():
     """
     Retrieves the Globus tokens.
     """
-
-    tokens = os.getenv('GLOBUS_DATA')
-    print("TOKENS BELOW")
-    print(tokens)
-    return json.loads(tokens)
+    client = NativeClient(client_id=CLIENT_ID, app_name=APP_NAME)
+    return client.load_tokens()

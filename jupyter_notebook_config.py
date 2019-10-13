@@ -13,6 +13,8 @@ c = get_config()
 c.NotebookApp.contents_manager_class = GlobusContentsManager
 # set the necessarry parameters (e.g., client id)
 
+# Which local endpoint to cache data to
+#c.NotebookApp.contents_manager_class.globus_local_endpoint = '0062f30a-8ff0-11e6-b067-22000b92c261'
 
 #------------------------------------------------------------------------------
 # Application(SingletonConfigurable) configuration
@@ -27,7 +29,7 @@ c.NotebookApp.contents_manager_class = GlobusContentsManager
 #c.Application.log_format = '[%(name)s]%(highlevel)s %(message)s'
 
 ## Set the log level by value or name.
-#c.Application.log_level = 30
+#c.Application.log_level = 'DEBUG'
 
 #------------------------------------------------------------------------------
 # JupyterApp(Application) configuration

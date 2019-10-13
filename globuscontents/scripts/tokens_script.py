@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import os
 import json
 from fair_research_login import NativeClient
@@ -11,21 +12,5 @@ CONFIG_FILE = 'tokens-data.json'
 tokens = None
 # try to load tokens from local file (native app config)
 client = NativeClient(client_id=CLIENT_ID, app_name=APP_NAME)
-try:
-    tokens = client.load_tokens(requested_scopes=SCOPES)
-except:
-    pass
-
-if not tokens:
-    # if no tokens, need to start Native App authentication process to get tokens
-    tokens = client.login(requested_scopes=SCOPES,
-                          refresh_tokens=False)
-
-    try:
-        # save the tokens
-        client.save_tokens(tokens)
-        
-        # create environment variable
-        os.environ['GLOBUS_DATA'] = json.dumps(tokens, indent=4, sort_keys=True)
-    except:
-        pass
+tokens = client.login(requested_scopes=SCOPES,
+                          refresh_tokens=True)

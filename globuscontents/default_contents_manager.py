@@ -3,7 +3,6 @@ WIP
 """
 import os
 from datetime import datetime
-from tika import parser
 from globuscontents.ipycompat import (
     ContentsManager, 
     HasTraits
@@ -23,7 +22,16 @@ class DefaultContentsManager(ContentsManager, HasTraits):
         for root, dirs, files in os.walk(self.path):
             for name in files:
                 local_path = os.path.join(root, name)
-                self.files[local_path] = parser.from_file(local_path)
+                self.files[local_path] = {
+                    "name": path.rsplit('/', 1)[-1],
+                    "path": path,
+                    "writable": True,
+                    "last_modified": None,
+                    "created": None,
+                    "content": None,
+                    "format": None,
+                    "mimetype": None,
+                    }
             for name in dirs:
                 local_path = os.path.join(root, name)
                 items = os.listdir(local_path)

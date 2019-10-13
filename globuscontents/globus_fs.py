@@ -47,17 +47,17 @@ class GlobusFS(DefaultFS):
     scopes = None
     transfer_client = None
     
-    def __init__(self, *args, **kwargs):
-        super(GlobusFS, self).__init__(*args, **kwargs)
-        # self.log = log
+    def __init__(self, log, **kwargs):
+        super(GlobusFS, self).__init__(**kwargs)
+        self.log = log
 
         try:
             # start login/auth process
-            spawn_tokens()
-            tokens = json.loads(get_tokens())
+            tokens = get_tokens()
 
             # extract the transfer access token
-            print(type(tokens))
+            self.log.debug(str(type(tokens)))
+            self.log.debug(str(tokens))
             transfer_access_token = tokens['transfer.api.globus.org']['access_token']
             # then use that token to create an AccessTokenAuthorizer
             transfer_auth = AccessTokenAuthorizer(transfer_access_token)
@@ -65,7 +65,7 @@ class GlobusFS(DefaultFS):
             self.transfer_client = TransferClient(authorizer=transfer_auth)
 
         except:
-            print("Error occurred when trying to log in to Globus")
+            self.log.debug("Error occurred when trying to log in to Globus")
 
     def get_transfer_client(self):
         """
@@ -131,7 +131,9 @@ class GlobusFS(DefaultFS):
 
     # DefaultFS method implementations ------------------------------------------------------------
 
-    def ls(self, path="/~/", endpoint_id=DEFAULT_ENDPOINT):
+    def ls(self, path="/~/", endpoint_id='ddb59aef-6d04-11e5-ba46-22000b92c6ec'):
+        if path[-1] != '/':
+            path = '{}/'.format(path)
         if self.transfer_client is None:
             self.get_transfer_client()
 
@@ -157,12 +159,12 @@ class GlobusFS(DefaultFS):
 
     def isdir(self, path, endpoint_id=DEFAULT_ENDPOINT):
         # Checks if the given path points to a directory
+        if path[-1] != '/':
+            path = '{}/'.format(path)
         resp = self.ls(path, endpoint_id)
-
         # if value returned is not an exception or None then no directory exists at the given path
         if isinstance(resp, exc.TransferAPIError) or resp is None:
             return False
-        
         # if no exception was returned then the given path does point to a directory
         return True
 
