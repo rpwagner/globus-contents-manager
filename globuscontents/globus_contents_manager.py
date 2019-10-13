@@ -16,7 +16,6 @@ from globuscontents.ipycompat import (
     ContentsManager, 
     HasTraits
 )
-from globuscontents.globus_fs import GlobusFS
 from globuscontents.utils import (
     base_model, 
     convert_to_datetime, 
@@ -150,7 +149,7 @@ class GlobusContentsManager(ContentsManager, HasTraits):
         # endpoint_id = input("Enter the Endpoint ID")
 
         # get the transfer client
-        transfer_client = self.fs.get_transfer_client()
+        #transfer_client = self.fs.get_transfer_client()
         # auth = self.nc.get_authorizers()['transfer.api.globus.org']
         # transfer_client = globus_sdk.TransferClient(authorizer=auth)
 
@@ -241,7 +240,7 @@ class GlobusContentsManager(ContentsManager, HasTraits):
         nb_contents = from_dict(model["content"])
         self.check_and_sign(nb_contents, path)
         file_contents = json.dumps(model["content"])
-        self.fs.writenotebook(path, file_contents)
+        #self.fs.writenotebook(path, file_contents)
         self.validate_notebook_model(model)
         return model.get("message")
 
