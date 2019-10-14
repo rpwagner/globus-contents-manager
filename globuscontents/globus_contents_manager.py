@@ -317,6 +317,7 @@ class GlobusContentsManager(ContentsManager, HasTraits):
         tdata = globus_sdk.TransferData(self.transfer_client,
                                             self.globus_remote_endpoint,
                                             self.globus_local_endpoint,
+                                            notify_on_succeeded=False,
                                             label=label)
         tdata.add_item(remote_notebook_path, local_notebook_path)
         # Ensure endpoints are activated
@@ -386,6 +387,7 @@ class GlobusContentsManager(ContentsManager, HasTraits):
         tdata = globus_sdk.TransferData(self.transfer_client,
                                             self.globus_remote_endpoint,
                                             self.globus_local_endpoint,
+                                            notify_on_succeeded=False,
                                             label=label)
         tdata.add_item(remote_file_path, local_file_path)
         # Ensure endpoints are activated
