@@ -6,12 +6,16 @@ import json
 import mimetypes
 import tempfile
 import time
-from traitlets import Unicode
+from traitlets import (Unicode, Int)
 import globus_sdk
 from fair_research_login import NativeClient
 from tornado.web import HTTPError
 from datetime import datetime
 from nbformat import from_dict, reads
+try: #PY3
+    from base64 import encodebytes, decodebytes
+except ImportError: #PY2
+    from base64 import encodestring as encodebytes, decodestring as decodebytes
 from globuscontents.ipycompat import (
     ContentsManager, 
     HasTraits
@@ -22,8 +26,6 @@ from globuscontents.utils import (
     DUMMY_CREATED_DATE,
     NBFORMAT_VERSION
 )
-
-NBFORMAT_VERSION = 4
 
 TUTORIAL_ENDPOINT1 = "ddb59aef-6d04-11e5-ba46-22000b92c6ec"
 TUT1_BASE_PATH = "/~"
@@ -37,6 +39,8 @@ class GlobusContentsManager(ContentsManager, HasTraits):
     """
     def __init__(self, *args, **kwargs):
         super(GlobusContentsManager, self).__init__(*args, **kwargs)
+        # TODO: Make this check for tokens in the environment (i.e., JupyterHub)
+        # Then load via Native App. Figure out login.
         client = NativeClient(client_id=self.client_id, app_name=self.app_name)
         tokens = client.load_tokens()
         transfer_access_token = tokens['transfer.api.globus.org']['access_token']
@@ -46,6 +50,8 @@ class GlobusContentsManager(ContentsManager, HasTraits):
         # finally, use the authorizer to create a TransferClient object
         self.transfer_client = globus_sdk.TransferClient(authorizer=transfer_auth)
         self.transfer_client.endpoint_autoactivate(self.globus_remote_endpoint)
+        # TODO: How to handle caching dir? Needs to be writable. On laptops,
+        # tmp dirs may not be accessible by GCP
         #self._cache_dir = tempfile.TemporaryDirectory()
         self._cache_dir = '/Users/rpwagner/tmp/jupyter_contents_cache'
 
@@ -73,9 +79,18 @@ class GlobusContentsManager(ContentsManager, HasTraits):
 
     globus_local_endpoint = Unicode(help="""Local Globus endpoint for caching
     files.""").tag(config=True)
-
     def _globus_local_endpoint_default(self):
         return ''
+
+    globus_cache_wait = Int(help="""How long to wait for a caching transfer to
+    finish in seconds.""").tag(config=True)
+    def _globus_cache_wait_default(self):
+        return 60
+
+    globus_cache_wait_poll = Int(help="""How frequently to poll (in seconds) a
+    transfer status when caching.""").tag(config=True)
+    def _globus_cache_wait_poll_default(self):
+        return 10
 
     #https://app.globus.org/file-manager?origin_id=
     def get(self, path, content=True, type=None, format=None):
@@ -99,6 +114,8 @@ class GlobusContentsManager(ContentsManager, HasTraits):
             of the file or directory as well.
         """
 
+        # TODO: CACHING! Layer goes here.
+        
         self.log.debug('Globus Contents get path = {}  type = {}'.format(path, type))
         if type == 'directory':
             model = self._get_dir(path, content=content)
@@ -124,16 +141,8 @@ class GlobusContentsManager(ContentsManager, HasTraits):
         return True
 
     def file_exists(self, file_path):
-        # Checks if a file exists at the given path
-        resp = self.get_ls(file_path)
-
-        # check if an exception was returned
-        if isinstance(resp, globus_sdk.exc.TransferAPIError):
-            # if the exception is about the item not being a directory then file exists
-            return "NotDirectory" in resp.code
-
-        # if an exception was not returned then file does not exist
-        return False
+        # TODO: Implement
+        return True
 
 
     def rename_file(self, old_path, new_path):
@@ -267,6 +276,12 @@ class GlobusContentsManager(ContentsManager, HasTraits):
             model['type'] = 'file'
             if ls_item['name'].endswith('.ipynb'):
                 model['type'] = 'notebook'
+                model['format'] = 'json'
+            else:
+                model['mimetype'] = mimetypes.guess_type(ls_item['name'])[0] or 'text/plain'
+                model['format'] = 'text'
+                if not model['mimetype'].startswith('text'):
+                    model['format'] = 'base64'
         return model
 
     def _get_dir(self, path, content=True):
@@ -288,6 +303,9 @@ class GlobusContentsManager(ContentsManager, HasTraits):
         return model
 
     def _get_notebook(self, path, content=True, format=None):
+        # TODO: Needs checkpoints
+        # This should become the general "get file" layer.
+        # Turn off notifications.
         self.log.debug('Globus Contents get notebook path = {}'.format(path))
         remote_notebook_path = os.path.join(self.globus_remote_endpoint_basepath, path.lstrip('/'))
         local_notebook_path = os.path.join(self._cache_dir, path.lstrip('/'))
@@ -305,11 +323,18 @@ class GlobusContentsManager(ContentsManager, HasTraits):
         self.transfer_client.endpoint_autoactivate(self.globus_remote_endpoint)
         self.transfer_client.endpoint_autoactivate(self.globus_local_endpoint)
         submit_result = self.transfer_client.submit_transfer(tdata)
-        stop = False
-        while not stop:
-            stop = self.transfer_client.get_task(submit_result['task_id']).data["status"] == "SUCCEEDED"
-            time.sleep(10)
-        
+        task_id = submit_result['task_id']
+        if self.transfer_client.task_wait(task_id, timeout=self.globus_cache_wait,
+                                              polling_interval=self.globus_cache_wait_poll):
+            task = self.transfer_client.get_task(task_id)
+            status = task["status"]
+            if status != "SUCCEEDED":
+                self.transfer_client.cancel_task(task_id)
+                HTTPError(502, 'Unable to cache {}'.format(path), reason='bad transfer')
+        else:
+            self.transfer_client.cancel_task(task_id)
+            HTTPError(408, 'Too long getting {}'.format(path), reason='slow caching')
+
         model = base_model(path)
         model['type'] = 'notebook'
         file_content = open(local_notebook_path, 'r').read()
@@ -318,4 +343,84 @@ class GlobusContentsManager(ContentsManager, HasTraits):
         model["format"] = "json"
         model["content"] = nb_content
         self.validate_notebook_model(model)
+        return model
+
+    def _read_local_file(self, local_path, format):
+        """Read a non-notebook file.
+        local_path: The path to be read.
+        format:
+          If 'text', the contents will be decoded as UTF-8.
+          If 'base64', the raw bytes contents will be encoded as base64.
+          If not specified, try to decode as UTF-8, and fall back to base64
+        """
+        
+        with open(local_path, 'rb') as f:
+            bcontent = f.read()
+
+        if format is None or format == 'text':
+            # Try to interpret as unicode if format is unknown or if unicode
+            # was explicitly requested.
+            try:
+                return bcontent.decode('utf8'), 'text'
+            except UnicodeError:
+                if format == 'text':
+                    raise HTTPError(
+                        400,
+                        "%s is not UTF-8 encoded" % local_path,
+                        reason='bad format',
+                    )
+        return encodebytes(bcontent).decode('ascii'), 'base64'
+    
+    def _get_file(self, path, content=True, format=None):
+        # TODO: Needs checkpoints
+        # This should become the general "get file" layer.
+        # Turn off notifications.
+        self.log.debug('Globus Contents get file path = {} contents = {}  format = {}'.format(path, str(content), format))
+        remote_file_path = os.path.join(self.globus_remote_endpoint_basepath, path.lstrip('/'))
+        local_file_path = os.path.join(self._cache_dir, path.lstrip('/'))
+        self.log.debug('remote file path = {}'.format(remote_file_path))
+        self.log.debug('local file path = {}'.format(local_file_path))
+        nb_dir = os.path.dirname(local_file_path)
+        label = "Jupyter ContentsManager caching"
+        # TransferData() automatically gets a submission_id for once-and-only-once submission
+        tdata = globus_sdk.TransferData(self.transfer_client,
+                                            self.globus_remote_endpoint,
+                                            self.globus_local_endpoint,
+                                            label=label)
+        tdata.add_item(remote_file_path, local_file_path)
+        # Ensure endpoints are activated
+        self.transfer_client.endpoint_autoactivate(self.globus_remote_endpoint)
+        self.transfer_client.endpoint_autoactivate(self.globus_local_endpoint)
+        submit_result = self.transfer_client.submit_transfer(tdata)
+        task_id = submit_result['task_id']
+        if self.transfer_client.task_wait(task_id, timeout=self.globus_cache_wait,
+                                              polling_interval=self.globus_cache_wait_poll):
+            task = self.transfer_client.get_task(task_id)
+            status = task["status"]
+            if status != "SUCCEEDED":
+                self.transfer_client.cancel_task(task_id)
+                HTTPError(502, 'Unable to cache {}'.format(path), reason='bad transfer')
+        else:
+            self.transfer_client.cancel_task(task_id)
+            HTTPError(408, 'Too long getting {}'.format(path), reason='slow caching')
+
+        model = base_model(path)
+        model['type'] = 'file'
+        model['last_modified'] = model['created'] = DUMMY_CREATED_DATE
+        model['format'] = format or 'text'
+        model['mimetype'] = mimetypes.guess_type(path)[0]
+        self.log.debug('Globus Contents get file path = {} model = {}'.format(path, str(model)))
+        if content:
+            content, format = self._read_local_file(local_file_path, format)
+            if model['mimetype'] is None:
+                default_mime = {
+                    'text': 'text/plain',
+                    'base64': 'application/octet-stream'
+                }[format]
+                model['mimetype'] = default_mime
+
+            model.update(
+                content=content,
+                format=format,
+            )
         return model
