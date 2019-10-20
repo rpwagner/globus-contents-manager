@@ -2,7 +2,9 @@
 Globus Contents Manager
 """
 import os
+import os
 import json
+import pickle
 import mimetypes
 import tempfile
 import time
@@ -13,11 +15,11 @@ from tornado.web import HTTPError
 from datetime import datetime
 from nbformat import from_dict, reads
 try: #PY3
-    from base64 import encodebytes, decodebytes
+    from base64 import encodebytes, decodebytes, b64decode
 except ImportError: #PY2
     from base64 import encodestring as encodebytes, decodestring as decodebytes
 from globuscontents.ipycompat import (
-    ContentsManager, 
+    ContentsManager,
     HasTraits
 )
 from globuscontents.utils import (
@@ -39,10 +41,14 @@ class GlobusContentsManager(ContentsManager, HasTraits):
     """
     def __init__(self, *args, **kwargs):
         super(GlobusContentsManager, self).__init__(*args, **kwargs)
-        # TODO: Make this check for tokens in the environment (i.e., JupyterHub)
-        # Then load via Native App. Figure out login.
-        client = NativeClient(client_id=self.client_id, app_name=self.app_name)
-        tokens = client.load_tokens()
+        tokens = {}
+        globus_env_data = os.getenv('GLOBUS_DATA')
+        if not globus_env_data:
+            client = NativeClient(client_id=self.client_id, app_name=self.app_name)
+            tokens = client.load_tokens()
+        else:
+            pickled_tokens = b64decode(globus_env_data)
+            tokens = pickle.loads(pickled_tokens)['tokens']
         transfer_access_token = tokens['transfer.api.globus.org']['access_token']
 
         # then use that token to create an AccessTokenAuthorizer
@@ -50,10 +56,6 @@ class GlobusContentsManager(ContentsManager, HasTraits):
         # finally, use the authorizer to create a TransferClient object
         self.transfer_client = globus_sdk.TransferClient(authorizer=transfer_auth)
         self.transfer_client.endpoint_autoactivate(self.globus_remote_endpoint)
-        # TODO: How to handle caching dir? Needs to be writable. On laptops,
-        # tmp dirs may not be accessible by GCP
-        #self._cache_dir = tempfile.TemporaryDirectory()
-        self._cache_dir = '/Users/rpwagner/tmp/jupyter_contents_cache'
 
     client_id = Unicode(help="""The Globus Native App client ID to use.""").tag(config=True)
     def _client_id_default(self):
@@ -82,6 +84,16 @@ class GlobusContentsManager(ContentsManager, HasTraits):
     def _globus_local_endpoint_default(self):
         return ''
 
+    globus_local_endpoint_cache_dir = Unicode(help="""Path to cache dir on the local
+    endpoint.""").tag(config=True)
+    def _globus_local_endpoint_cache_dir_default(self):
+        return '/cache'
+
+    globus_local_fs_cache_dir = Unicode(help="""Path to cache dir on the local file
+    system.""").tag(config=True)
+    def _globus_local_fs_cache_dir_default(self):
+        return '/home/researcher/projects/cache'
+    
     globus_cache_wait = Int(help="""How long to wait for a caching transfer to
     finish in seconds.""").tag(config=True)
     def _globus_cache_wait_default(self):
@@ -133,6 +145,7 @@ class GlobusContentsManager(ContentsManager, HasTraits):
         ep_path = os.path.join(self.globus_remote_endpoint_basepath, path.lstrip('/'))
         if ep_path[-1] != '/':
             ep_path = '{}/'.format(ep_path)
+        self.log.debug('Globus Contents dir_exists ep_path = {}'.format(ep_path))
         resp = self.transfer_client.operation_ls(self.globus_remote_endpoint, path=ep_path, show_hidden=False)
         # if value returned is not an exception or None then no directory exists at the given path
         if isinstance(resp, globus_sdk.exc.TransferAPIError) or resp is None:
@@ -281,7 +294,7 @@ class GlobusContentsManager(ContentsManager, HasTraits):
                 model['mimetype'] = mimetypes.guess_type(ls_item['name'])[0] or 'text/plain'
                 model['format'] = 'text'
                 if not model['mimetype'].startswith('text'):
-                    model['format'] = 'base64'
+                    model['format'] = None
         return model
 
     def _get_dir(self, path, content=True):
@@ -308,10 +321,12 @@ class GlobusContentsManager(ContentsManager, HasTraits):
         # Turn off notifications.
         self.log.debug('Globus Contents get notebook path = {}'.format(path))
         remote_notebook_path = os.path.join(self.globus_remote_endpoint_basepath, path.lstrip('/'))
-        local_notebook_path = os.path.join(self._cache_dir, path.lstrip('/'))
+        local_ep_notebook_path = os.path.join(self.globus_local_endpoint_cache_dir, path.lstrip('/'))
+        local_fs_notebook_path = os.path.join(self.globus_local_fs_cache_dir, path.lstrip('/'))
         self.log.debug('remote notebook path = {}'.format(remote_notebook_path))
-        self.log.debug('local notebook path = {}'.format(local_notebook_path))
-        nb_dir = os.path.dirname(local_notebook_path)
+        self.log.debug('local ep notebook path = {}'.format(local_ep_notebook_path))
+        self.log.debug('local fs notebook path = {}'.format(local_fs_notebook_path))
+        nb_dir = os.path.dirname(local_fs_notebook_path)
         label = "Jupyter ContentsManager caching"
         # TransferData() automatically gets a submission_id for once-and-only-once submission
         tdata = globus_sdk.TransferData(self.transfer_client,
@@ -319,7 +334,7 @@ class GlobusContentsManager(ContentsManager, HasTraits):
                                             self.globus_local_endpoint,
                                             notify_on_succeeded=False,
                                             label=label)
-        tdata.add_item(remote_notebook_path, local_notebook_path)
+        tdata.add_item(remote_notebook_path, local_ep_notebook_path)
         # Ensure endpoints are activated
         self.transfer_client.endpoint_autoactivate(self.globus_remote_endpoint)
         self.transfer_client.endpoint_autoactivate(self.globus_local_endpoint)
@@ -338,7 +353,7 @@ class GlobusContentsManager(ContentsManager, HasTraits):
 
         model = base_model(path)
         model['type'] = 'notebook'
-        file_content = open(local_notebook_path, 'r').read()
+        file_content = open(local_fs_notebook_path, 'r').read()
         nb_content = reads(file_content, as_version=NBFORMAT_VERSION)
         self.mark_trusted_cells(nb_content, path)
         model["format"] = "json"
@@ -378,10 +393,12 @@ class GlobusContentsManager(ContentsManager, HasTraits):
         # Turn off notifications.
         self.log.debug('Globus Contents get file path = {} contents = {}  format = {}'.format(path, str(content), format))
         remote_file_path = os.path.join(self.globus_remote_endpoint_basepath, path.lstrip('/'))
-        local_file_path = os.path.join(self._cache_dir, path.lstrip('/'))
+        local_ep_file_path = os.path.join(self.globus_local_endpoint_cache_dir, path.lstrip('/'))
+        local_fs_file_path = os.path.join(self.globus_local_fs_cache_dir, path.lstrip('/'))
         self.log.debug('remote file path = {}'.format(remote_file_path))
-        self.log.debug('local file path = {}'.format(local_file_path))
-        nb_dir = os.path.dirname(local_file_path)
+        self.log.debug('local ep file path = {}'.format(local_ep_file_path))
+        self.log.debug('local fs file path = {}'.format(local_fs_file_path))
+        nb_dir = os.path.dirname(local_fs_file_path)
         label = "Jupyter ContentsManager caching"
         # TransferData() automatically gets a submission_id for once-and-only-once submission
         tdata = globus_sdk.TransferData(self.transfer_client,
@@ -389,7 +406,7 @@ class GlobusContentsManager(ContentsManager, HasTraits):
                                             self.globus_local_endpoint,
                                             notify_on_succeeded=False,
                                             label=label)
-        tdata.add_item(remote_file_path, local_file_path)
+        tdata.add_item(remote_file_path, local_ep_file_path)
         # Ensure endpoints are activated
         self.transfer_client.endpoint_autoactivate(self.globus_remote_endpoint)
         self.transfer_client.endpoint_autoactivate(self.globus_local_endpoint)
@@ -413,7 +430,7 @@ class GlobusContentsManager(ContentsManager, HasTraits):
         model['mimetype'] = mimetypes.guess_type(path)[0]
         self.log.debug('Globus Contents get file path = {} model = {}'.format(path, str(model)))
         if content:
-            content, format = self._read_local_file(local_file_path, format)
+            content, format = self._read_local_file(local_fs_file_path, format)
             if model['mimetype'] is None:
                 default_mime = {
                     'text': 'text/plain',

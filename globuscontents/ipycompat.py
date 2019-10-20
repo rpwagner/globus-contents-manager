@@ -16,13 +16,14 @@ from notebook.services.contents.filecheckpoints import (
     GenericFileCheckpoints
 )
 from notebook.services.contents.manager import ContentsManager
-from notebook.services.contents.tests.test_manager import (
-    TestContentsManager
-)
-from notebook.services.contents.tests.test_contents_api import (
-    APITest
-)
-from notebook.tests.launchnotebook import assert_http_error
+from notebook.base.handlers import AuthenticatedFileHandler
+#from notebook.services.contents.tests.test_manager import (
+#    TestContentsManager
+#)
+#from notebook.services.contents.tests.test_contents_api import (
+#    APITest
+#)
+#from notebook.tests.launchnotebook import assert_http_error
 from notebook.utils import to_os_path
 from nbformat import from_dict, reads, writes
 from nbformat.v4.nbbase import (
@@ -52,6 +53,7 @@ __all__ = [
     'Config',
     'ContentsManager',
     'Dict',
+    'AuthenticatedFileHandler',
     'FileContentsManager',
     'GenericCheckpointsMixin',
     'GenericFileCheckpoints',
